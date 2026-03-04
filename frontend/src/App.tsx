@@ -1,35 +1,130 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+interface Usuario {
+  nome: string;
+  email: string;
+  telefone: string;
+  idade: string;
 }
 
-export default App
+function App() {
+  const [formData, setFormData] = useState<Usuario>({
+    nome: "",
+    email: "",
+    telefone: "",
+    idade: ""
+  });
+
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const { name, value } = e.target;
+
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  }
+
+  function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
+    e.preventDefault();
+
+    if (!formData.nome || !formData.email) {
+      alert("Nome e Email são obrigatórios!");
+      return;
+    }
+
+    setUsuarios([...usuarios, formData]);
+
+    setFormData({
+      nome: "",
+      email: "",
+      telefone: "",
+      idade: ""
+    });
+  }
+
+  function removerUsuario(index: number) {
+    const novaLista = usuarios.filter((_, i) => i !== index);
+    setUsuarios(novaLista);
+  }
+
+  return (
+    <div className="container">
+      <h1>Cadastro de Dados Pessoais</h1>
+
+      <form onSubmit={handleSubmit} className="form">
+        <input
+          type="text"
+          name="nome"
+          placeholder="Nome"
+          value={formData.nome}
+          onChange={handleChange}
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+        />
+
+        <input
+          type="text"
+          name="telefone"
+          placeholder="Telefone"
+          value={formData.telefone}
+          onChange={handleChange}
+        />
+
+        <input
+          type="number"
+          name="idade"
+          placeholder="Idade"
+          value={formData.idade}
+          onChange={handleChange}
+        />
+
+        <button type="submit">Salvar</button>
+      </form>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Telefone</th>
+            <th>Idade</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {usuarios.map((usuario, index) => (
+            <tr key={index}>
+              <td>{usuario.nome}</td>
+              <td>{usuario.email}</td>
+              <td>{usuario.telefone}</td>
+              <td>{usuario.idade}</td>
+              <td>
+                <button
+                  className="delete"
+                  onClick={() => removerUsuario(index)}
+                >
+                  Remover
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default App;
