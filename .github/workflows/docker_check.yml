@@ -24,7 +24,7 @@ jobs:
         run: docker build -t williamecardoso/devops-satc:0.0.1 .
         
       - name: push docker image
-        run: docker push docker.io/williamecardoso/devops-satc:0.0.1
+        run: docker push docker.io/dieizonlemes/satc-devops:0.0.2
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
