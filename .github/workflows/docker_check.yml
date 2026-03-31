@@ -24,7 +24,7 @@ jobs:
         run: docker build -t williamecardoso/devops-satc:0.0.1 .
         
       - name: push docker image
-        run: docker push docker.io/dieizonlemes/satc-devops:0.0.2
+        run: docker push docker.io/williamecardoso/devops-satc:0.0.1
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -41,7 +41,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'image'
-          image-ref: 'docker.io/usuario/satc-devops:0.0.2'
+          image-ref: 'docker.io/williamecardoso/devops-satc:0.0.1
           format: json
           output: trivy-results.json
           severity: MEDIUM,HIGH,CRITICAL
