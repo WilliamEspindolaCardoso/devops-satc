@@ -58,7 +58,7 @@ jobs:
             VULN_COUNT=$(jq '[.Results[].Vulnerabilities[] | select(.Severity == "MEDIUM")] | length' trivy-results.json)
             echo "Quantidade de vulnerabilidades mÃ©dias: $VULN_COUNT"
 
-            if [ "$VULN_COUNT" -gt 999 ]; then
+            if [ "$VULN_COUNT" -gt 2 ]; then
               echo "Pipeline bloqueada: mais de 2 vulnerabilidades mÃ©dias encontradas."
               exit 1
             fi
@@ -75,7 +75,7 @@ jobs:
 
           echo "Quantidade de vulnerabilidades mÃ©dias: $COUNT"
 
-          if [ "$COUNT" -gt 999 ]; then
+          if [ "$COUNT" -gt 2 ]; then
             echo "Pipeline bloqueada: mais de 2 vulnerabilidades mÃ©dias encontradas."
             exit 1
           fi
