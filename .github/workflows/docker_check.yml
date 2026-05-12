@@ -71,7 +71,7 @@ jobs:
       - name: Falhar se houver mais de 2 vulnerabilidades mÃ©dias
         run: |
           COUNT=$(curl -s -u "${SONAR_TOKEN}:" \
-            "https://sonarcloud.io/api/issues/search?componentKeys=WilliamEspindolaCardoso_devops-satc&types=VULNERABILITY&severities=MAJOR&resolved=false&ps=1" \
+            "https://sonarcloud.io/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&types=VULNERABILITY&severities=MAJOR&resolved=false&ps=1" \
             | jq '.total')
 
           echo "Quantidade de vulnerabilidades mÃ©dias: $COUNT"
