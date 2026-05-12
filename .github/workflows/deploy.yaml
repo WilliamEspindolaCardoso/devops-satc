@@ -36,18 +36,18 @@ jobs:
         run: |
           # Substitui a imagem no deployment.yaml pela nova imagem com tag 0.0.3
           sed -i 's/##DOCKER_USERNAME##/${{ secrets.DOCKER_USERNAME }}/g' k8s/deployment.yaml
-          sed -i 's/##K8S_WILLIAM##/${{ vars.K8S_WILLIAM }}/g' k8s/deployment.yaml
+          sed -i 's/##K8S_NAMESPACE##/${{ vars.K8S_NAMESPACE }}/g' k8s/deployment.yaml
           sed -i 's/##K8S_TAG##/${{ github.sha }}/g' k8s/deployment.yaml
 
       - name: Criar namespace se nÃ£o existir
         run: |
-          # Cria namespace ${{ vars.K8S_WILLIAM }} idempotentemente
-          kubectl create namespace ${{ vars.K8S_WILLIAM }} --dry-run=client -o yaml | kubectl apply -f -
+          # Cria namespace ${{ vars.K8S_NAMESPACE }} idempotentemente
+          kubectl create namespace ${{ vars.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Aplicar manifests Kubernetes
         run: |
           # Aplica deployment.yaml e service.yaml do diretÃ³rio k8s/
-          kubectl apply -f k8s/ -n ${{ vars.K8S_WILLIAM }}
+          kubectl apply -f k8s/ -n ${{ vars.K8S_NAMESPACE }}
 
       # - name: Aguardar rollout do deployment
       #   run: |
