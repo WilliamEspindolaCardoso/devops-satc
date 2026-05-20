@@ -46,14 +46,6 @@ spec:
             cpu: "500m"
             memory: "512Mi"
 
-        # Probe de inicialização
-        startupProbe:
-          httpGet:
-            path: /
-            port: 5173
-          failureThreshold: 30
-          periodSeconds: 10
-
         # Probe de vida
         livenessProbe:
           httpGet:
@@ -62,13 +54,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
 
-        # Probe de prontidão
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 5173
-          initialDelaySeconds: 5
-          periodSeconds: 10
 
 ---
 apiVersion: v1
