@@ -55,89 +55,79 @@
 #       #     kubectl rollout status deployment/satc-devops -n ${{ vars.K8S_NAMESPACE }} --timeout=300s
 
 
-
 name: Deploy para GKE
 
 on:
-workflow_run:
-workflows: ['Build']
-types: [completed]
-workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Build
+    types:
+      - completed
+
+  workflow_dispatch:
 
 jobs:
-deploy:
-runs-on: ubuntu-latest
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
-```
-permissions:
-  contents: read
-  id-token: write
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+    permissions:
+      contents: read
+      id-token: write
 
-  - name: Autenticar no Google Cloud (OIDC)
-    id: auth
-    uses: google-github-actions/auth@v2
-    with:
-      workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider2
-      service_account: gke-deploy-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Configurar Cloud SDK
-    uses: google-github-actions/setup-gcloud@v2
+      - name: Autenticar no Google Cloud (OIDC)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider2
+          service_account: gke-deploy-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
 
-  - name: Obter credenciais GKE
-    uses: google-github-actions/get-gke-credentials@v2
-    with:
-      cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
-      location: ${{ vars.GKE_CLUSTER_LOCATION }}
+      - name: Configurar Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-  - name: Substituir variáveis nos manifests
-    run: |
-      find k8s -type f \( -name "*.yaml" -o -name "*.yml" \) \
-      -exec sed -i 's/##DOCKER_USERNAME##/${{ secrets.DOCKER_USERNAME }}/g' {} \;
+      - name: Obter credenciais do cluster GKE
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
+          location: ${{ vars.GKE_CLUSTER_LOCATION }}
 
-      find k8s -type f \( -name "*.yaml" -o -name "*.yml" \) \
-      -exec sed -i 's/##K8S_NAMESPACE##/${{ vars.K8S_NAMESPACE }}/g' {} \;
+      - name: Substituir variáveis dos manifests
+        run: |
+          find k8s -type f -name "*.yaml" -exec sed -i 's/##DOCKER_USERNAME##/${{ secrets.DOCKER_USERNAME }}/g' {} \;
+          find k8s -type f -name "*.yaml" -exec sed -i 's/##K8S_NAMESPACE##/${{ vars.K8S_NAMESPACE }}/g' {} \;
+          find k8s -type f -name "*.yaml" -exec sed -i 's/##K8S_TAG##/${{ github.sha }}/g' {} \;
 
-      find k8s -type f \( -name "*.yaml" -o -name "*.yml" \) \
-      -exec sed -i 's/##K8S_TAG##/${{ github.sha }}/g' {} \;
+      - name: Criar namespace se não existir
+        run: |
+          kubectl create namespace ${{ vars.K8S_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
-  - name: Exibir manifests gerados
-    run: |
-      echo "===== ARQUIVOS DA PASTA K8S ====="
-      find k8s -type f
+      - name: Validar manifests
+        run: |
+          kubectl apply --dry-run=client -f k8s/
 
-      echo ""
-      echo "===== CONTEÚDO DOS MANIFESTS ====="
-      for file in k8s/*.yaml; do
-        echo ""
-        echo "########################################"
-        echo "# $file"
-        echo "########################################"
-        cat "$file"
-      done
+      - name: Aplicar manifests Kubernetes
+        run: |
+          kubectl apply -f k8s/
 
-  - name: Criar namespace se não existir
-    run: |
-      kubectl create namespace ${{ vars.K8S_NAMESPACE }} \
-        --dry-run=client -o yaml | kubectl apply -f -
+      - name: Verificar recursos implantados
+        run: |
+          kubectl get all -n ${{ vars.K8S_NAMESPACE }}
+          kubectl get ingress -n ${{ vars.K8S_NAMESPACE }}
+          kubectl get hpa -n ${{ vars.K8S_NAMESPACE }}
 
-  - name: Validar manifests
-    run: |
-      kubectl apply --dry-run=client -f k8s/
+      - name: Aguardar rollout do deployment
+        run: |
+          kubectl rollout status deployment/app-satc \
+            -n ${{ vars.K8S_NAMESPACE }} \
+            --timeout=300s
 
-  - name: Aplicar manifests Kubernetes
-    run: |
-      kubectl apply -f k8s/ -n ${{ vars.K8S_NAMESPACE }}
-
-  - name: Verificar recursos criados
-    run: |
-      kubectl get all -n ${{ vars.K8S_NAMESPACE }}
-
-  - name: Aguardar rollout do deployment
-    run: |
-      kubectl rollout status deployment/app-satc \
-        -n ${{ vars.K8S_NAMESPACE }} \
-        --timeout=300s
+      - name: Exibir HPA
+        run: |
+          kubectl describe hpa app-satc-hpa \
+            -n ${{ vars.K8S_NAMESPACE }} || true

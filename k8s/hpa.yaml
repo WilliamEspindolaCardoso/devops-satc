@@ -1,13 +1,15 @@
+## hpa.yaml
+
 # apiVersion: autoscaling/v2
 # kind: HorizontalPodAutoscaler
 # metadata:
-#   name: app-##DOCKER_USERNAME##-hpa ##app-satc-hpa
+#   name: app-satc
 #   namespace: ##K8S_NAMESPACE##
 # spec:
 #   scaleTargetRef:
 #     apiVersion: apps/v1
 #     kind: Deployment
-#     name: app-##DOCKER_USERNAME## ##app-satc
+#     name: app-satc
 #   minReplicas: 1
 #   maxReplicas: 5
 #   behavior:
@@ -30,7 +32,6 @@
 #         target:
 #           type: Utilization
 #           averageUtilization: 70
-
 
 
 apiVersion: autoscaling/v2
