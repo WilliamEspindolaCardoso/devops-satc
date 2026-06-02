@@ -49,8 +49,8 @@ spec:
         # Probe de vida
         livenessProbe:
           httpGet:
-            path: /
-            port: 5173
+            path: /health
+            port: http ##5173
           initialDelaySeconds: 15
           periodSeconds: 20
 
@@ -84,7 +84,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 
 metadata:
-  name: app-satc
+  name: app-##DOCKER_USERNAME## ##app-satc
   namespace: ##K8S_NAMESPACE##
 
   annotations:
@@ -103,6 +103,6 @@ spec:
 
         backend:
           service:
-            name: app-satc
+            name: app-##DOCKER_USERNAME## ##app-satc
             port:
               number: 80
