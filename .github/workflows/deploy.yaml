@@ -1,81 +1,17 @@
-# name: Deploy para GKE
-
-# on:
-#   workflow_run:
-#     workflows: ['Build']
-#     types: [completed]
-#   workflow_dispatch:
-
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: 'read'
-#       id-token: 'write'
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v4
-
-#       - name: Autenticar no Google Cloud (OIDC)
-#         id: auth
-#         uses: google-github-actions/auth@v2
-#         with:
-#           workload_identity_provider: 'projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider2'
-#           service_account: 'gke-deploy-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
-
-#       - name: Configurar Cloud SDK
-#         uses: google-github-actions/setup-gcloud@v2
-
-#       - name: Obter credenciais GKE
-#         uses: google-github-actions/get-gke-credentials@v2
-#         with:
-#           cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
-#           location: ${{ vars.GKE_CLUSTER_LOCATION }}
-
-#       - name: Replace vars in deployment.yaml
-#         run: |
-#           # Substitui a imagem no deployment.yaml pela nova imagem com tag 0.0.3
-#           sed -i 's/##DOCKER_USERNAME##/${{ secrets.DOCKER_USERNAME }}/g' k8s/deployment.yaml
-#           sed -i 's/##K8S_NAMESPACE##/${{ vars.K8S_NAMESPACE }}/g' k8s/deployment.yaml
-#           sed -i 's/##K8S_TAG##/${{ github.sha }}/g' k8s/deployment.yaml
-
-#       - name: Criar namespace se nÃ£o existir
-#         run: |
-#           # Cria namespace ${{ vars.K8S_NAMESPACE }} idempotentemente
-#           kubectl create namespace ${{ vars.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
-
-#       - name: Aplicar manifests Kubernetes
-#         run: |
-#           # Aplica deployment.yaml e service.yaml do diretÃ³rio k8s/
-#           kubectl apply -f k8s/ -n ${{ vars.K8S_NAMESPACE }}
-
-#       # - name: Aguardar rollout do deployment
-#       #   run: |
-#       #     # Verifica status do rollout (timeout 5min)
-#       #     kubectl rollout status deployment/satc-devops -n ${{ vars.K8S_NAMESPACE }} --timeout=300s
-
-
 name: Deploy para GKE
 
 on:
   workflow_run:
-    workflows:
-      - Build
-    types:
-      - completed
-
+    workflows: ['Build']
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-
     runs-on: ubuntu-latest
-
     permissions:
-      contents: read
-      id-token: write
-
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,50 +20,36 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider2
-          service_account: gke-deploy-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+          workload_identity_provider: 'projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider2'
+          service_account: 'gke-deploy-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
 
       - name: Configurar Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Obter credenciais do cluster GKE
+      - name: Obter credenciais GKE
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
           location: ${{ vars.GKE_CLUSTER_LOCATION }}
 
-      - name: Substituir variáveis dos manifests
+      - name: Replace vars in deployment.yaml
         run: |
-          find k8s -type f -name "*.yaml" -exec sed -i 's/##DOCKER_USERNAME##/${{ secrets.DOCKER_USERNAME }}/g' {} \;
-          find k8s -type f -name "*.yaml" -exec sed -i 's/##K8S_NAMESPACE##/${{ vars.K8S_NAMESPACE }}/g' {} \;
-          find k8s -type f -name "*.yaml" -exec sed -i 's/##K8S_TAG##/${{ github.sha }}/g' {} \;
+          # Substitui a imagem no deployment.yaml pela nova imagem com tag 0.0.3
+          sed -i 's/##DOCKER_USERNAME##/${{ secrets.DOCKER_USERNAME }}/g' k8s/deployment.yaml
+          sed -i 's/##K8S_NAMESPACE##/${{ vars.K8S_NAMESPACE }}/g' k8s/deployment.yaml
+          sed -i 's/##K8S_TAG##/${{ github.sha }}/g' k8s/deployment.yaml
 
-      - name: Criar namespace se não existir
+      - name: Criar namespace se nÃ£o existir
         run: |
-          kubectl create namespace ${{ vars.K8S_NAMESPACE }} \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Validar manifests
-        run: |
-          kubectl apply --dry-run=client -f k8s/
+          # Cria namespace ${{ vars.K8S_NAMESPACE }} idempotentemente
+          kubectl create namespace ${{ vars.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Aplicar manifests Kubernetes
         run: |
-          kubectl apply -f k8s/
+          # Aplica deployment.yaml e service.yaml do diretÃ³rio k8s/
+          kubectl apply -f k8s/ -n ${{ vars.K8S_NAMESPACE }}
 
-      - name: Verificar recursos implantados
-        run: |
-          kubectl get all -n ${{ vars.K8S_NAMESPACE }}
-          kubectl get ingress -n ${{ vars.K8S_NAMESPACE }}
-          kubectl get hpa -n ${{ vars.K8S_NAMESPACE }}
-
-      - name: Aguardar rollout do deployment
-        run: |
-          kubectl rollout status deployment/app-satc \
-            -n ${{ vars.K8S_NAMESPACE }} \
-            --timeout=300s
-
-      - name: Exibir HPA
-        run: |
-          kubectl describe hpa app-satc-hpa \
-            -n ${{ vars.K8S_NAMESPACE }} || true
+      # - name: Aguardar rollout do deployment
+      #   run: |
+      #     # Verifica status do rollout (timeout 5min)
+      #     kubectl rollout status deployment/satc-devops -n ${{ vars.K8S_NAMESPACE }} --timeout=300s
